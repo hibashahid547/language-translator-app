@@ -1,37 +1,42 @@
-// INIT VOICES
+// ==========================
+// LOAD VOICES
+// ==========================
+
 let voices = [];
 
 function loadVoices() {
-    voices = window.speechSynthesis.getVoices();
-
-    const voiceSelect = document.getElementById("voiceSelect");
-    if (!voiceSelect) return;
-
-    voiceSelect.innerHTML = "";
-
-    voices.forEach((voice, i) => {
-        let option = document.createElement("option");
-        option.value = i;
-        option.textContent = `${voice.name} (${voice.lang})`;
-        voiceSelect.appendChild(option);
-    });
+    voices = speechSynthesis.getVoices();
 }
 
-window.speechSynthesis.onvoiceschanged = loadVoices;
-window.speechSynthesis.getVoices();
+loadVoices();
 
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// ==========================
 // TRANSLATE
+// ==========================
+
 async function translateText() {
-    const text = document.getElementById("inputText").value;
+
+    const text = document.getElementById("inputText").value.trim();
     const source = document.getElementById("sourceLang").value;
     const target = document.getElementById("targetLang").value;
+
+    if (!text) {
+        alert("Please enter some text.");
+        return;
+    }
 
     const loader = document.getElementById("loader");
     loader.classList.remove("hidden");
 
-    const url = `https://api.mymemory.translated.net/get?q=${text}&langpair=${source}|${target}`;
+    const url =
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`;
 
     try {
+
         const response = await fetch(url);
         const data = await response.json();
 
@@ -39,92 +44,137 @@ async function translateText() {
             data.responseData.translatedText;
 
     } catch (error) {
-        document.getElementById("result").innerText = "Error translating text!";
+
+        document.getElementById("result").innerText =
+            "Error translating text!";
+
+        console.error(error);
     }
 
     loader.classList.add("hidden");
 }
 
-// SWAP
+// ==========================
+// SWAP LANGUAGES
+// ==========================
+
 function swapLang() {
-    let s = document.getElementById("sourceLang");
-    let t = document.getElementById("targetLang");
 
-    let temp = s.value;
-    s.value = t.value;
-    t.value = temp;
+    const source =
+        document.getElementById("sourceLang");
+
+    const target =
+        document.getElementById("targetLang");
+
+    let temp = source.value;
+
+    source.value = target.value;
+    target.value = temp;
 }
 
+// ==========================
 // COPY
+// ==========================
+
 function copyText() {
-    const text = document.getElementById("result").innerText;
+
+    const text =
+        document.getElementById("result").innerText;
+
     navigator.clipboard.writeText(text);
+
+    alert("Copied successfully!");
 }
 
-// SPEAK PRO
-function speakText() {
-    const text = document.getElementById("result").innerText;
-    const targetLang = document.getElementById("targetLang").value;
+// ==========================
+// SPEAK
+// ==========================
 
-    if (!text || text.includes("Your translation will appear here")) {
-        alert("No text to speak!");
+function speakText() {
+
+    const text =
+        document.getElementById("result").innerText;
+
+    if (
+        !text ||
+        text === "Your translation will appear here..." ||
+        text === "Error translating text!"
+    ) {
+        alert("No translated text available!");
         return;
     }
 
-    window.speechSynthesis.cancel();
+    speechSynthesis.cancel();
 
-    const speech = new SpeechSynthesisUtterance(text);
+    const targetLang =
+        document.getElementById("targetLang").value;
 
-    const langMap = {
-        en: "en",
-        ur: "ur",
-        fr: "fr",
-        es: "es",
-        de: "de",
-        hi: "hi"
+    const speech =
+        new SpeechSynthesisUtterance(text);
+
+    const languageMap = {
+        en: "en-US",
+        ur: "ur-PK",
+        fr: "fr-FR",
+        es: "es-ES",
+        de: "de-DE",
+        hi: "hi-IN"
     };
 
-    const code = langMap[targetLang] || "en";
+    speech.lang =
+        languageMap[targetLang] || "en-US";
 
-    let selectedVoice = voices.find(v =>
-        v.lang.toLowerCase().includes(code)
-    );
+    let voice =
+        voices.find(v =>
+            v.lang.toLowerCase().startsWith(
+                targetLang.toLowerCase()
+            )
+        );
 
-    const voiceSelect = document.getElementById("voiceSelect");
-    if (voiceSelect && voiceSelect.value !== "") {
-        selectedVoice = voices[voiceSelect.value];
-    }
-
-    if (selectedVoice) {
-        speech.voice = selectedVoice;
-        speech.lang = selectedVoice.lang;
+    if (voice) {
+        speech.voice = voice;
     }
 
     speech.rate = 1;
     speech.pitch = 1;
     speech.volume = 1;
 
-    window.speechSynthesis.speak(speech);
+    speechSynthesis.speak(speech);
 }
 
+// ==========================
 // PAUSE
+// ==========================
+
 function pauseSpeech() {
-    window.speechSynthesis.pause();
+    speechSynthesis.pause();
 }
 
+// ==========================
 // RESUME
+// ==========================
+
 function resumeSpeech() {
-    window.speechSynthesis.resume();
+    speechSynthesis.resume();
 }
 
+// ==========================
 // STOP
+// ==========================
+
 function stopSpeech() {
-    window.speechSynthesis.cancel();
+    speechSynthesis.cancel();
 }
 
-// CHAR COUNT
+// ==========================
+// CHARACTER COUNT
+// ==========================
+
 function countChars() {
-    const text = document.getElementById("inputText").value;
+
+    const text =
+        document.getElementById("inputText").value;
+
     document.getElementById("charCount").innerText =
         text.length + " characters";
 }
